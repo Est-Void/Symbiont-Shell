@@ -60,7 +60,7 @@ Singleton {
         readonly property list<string> ui: ["Inter", "sans-serif"]
         readonly property list<string> display: ["Archivo", "Inter", "sans-serif"]
         readonly property list<string> mono: ["Space Mono", "IBM Plex Mono", "monospace"]
-        readonly property list<string> dot: ["Doto", "Handjet", "monospace"]
+        readonly property list<string> dot: ["NDOT 47 (inspired by NOTHING)", "Doto", "Handjet", "monospace"]
     }
 
     readonly property QtObject type: QtObject {
@@ -166,6 +166,9 @@ Singleton {
         readonly property int fast: 140
         readonly property int base: 200
         readonly property int slow: 320
+        readonly property int notificationIn: 320
+        readonly property int notificationOut: 300
+        readonly property int notificationQueue: 120
         readonly property int arcTurn: 8000
         readonly property int idleGaze: 2400
         readonly property int blink: 3700
@@ -191,31 +194,64 @@ Singleton {
         readonly property real dropWidth: 50
         readonly property real dropHeight: 36
         readonly property real dropShoulder: 14
-        readonly property real dropBodyRadius: 18
-        readonly property real dropTopRadius: 7
+        readonly property real dropBodyRadius: root.radius.md
+        readonly property real dropTopRadius: root.radius.xs
         readonly property real barWidth: 64
         readonly property real barExpandedWidth: 168
         readonly property real barPlaceholderWidth: 128
-        readonly property real barTopRadius: 7
-        readonly property real barBottomRadius: 14
+        readonly property real barTopRadius: root.radius.xs
+        readonly property real barBottomRadius: root.radius.md
+        readonly property real mascotModuleGap: 12
+        readonly property real mascotCenterWidth: 128
+        readonly property real mascotMinWidth: 80
         readonly property real menuWidth: 240
         readonly property real menuHeight: 160
-        readonly property real menuTopRadius: 7
-        readonly property real menuBottomRadius: 14
+        readonly property real menuTopRadius: root.radius.xs
+        readonly property real menuBottomRadius: root.radius.sm
+        readonly property real settingsWidth: root.space.xxxl * 10 + root.space.xxl
+        readonly property real settingsHeight: root.space.xxxl * 9 + root.space.xxl
+        readonly property real settingsHeaderHeight: root.space.xxl
+        readonly property real settingsRailWidth: root.space.xxxl * 2
+        readonly property real settingsRowHeight: root.space.xxl
+        readonly property real settingsTopRadius: root.radius.lg
+        readonly property real settingsBottomRadius: root.radius.xl
+        readonly property real notificationWidth: 360
+        readonly property real notificationIcon: 32
+        readonly property real notificationClose: 32
+        readonly property real notificationNeckWidth: 48
+        readonly property real notificationNeckHeight: 16
+        readonly property real notificationRise: 8
+        readonly property real notificationFlowInX: 0.10
+        readonly property real notificationFlowInY: 0.35
+        readonly property real notificationFlowOutX: 0.06
+        readonly property real notificationFlowOutY: 0.20
+        readonly property real notificationStretch: 1.02
+        readonly property real notificationGazeSpanX: 260
+        readonly property real notificationGazeSpanY: 90
+        readonly property real chargeWidth: root.space.xxxl * 4 + root.space.xl
+        readonly property real chargeHeight: root.space.xxl
+        readonly property real chargeValueWidth: root.space.xxxl + root.space.lg
+        readonly property real chargeTrackWidth: root.space.xxxl * 2
+        readonly property real chargeTrackHeight: root.space.sm
+        readonly property real chargeDot: root.space.sm - root.space.xxs
+        readonly property real chargeDitherPitch: root.space.xxs
+        readonly property real connectionIcon: root.space.md
         readonly property real focusRingWidth: 2
         readonly property real focusRingOffset: 2
-        readonly property real mascotRingRadius: 12
+        readonly property real mascotRingRadius: root.radius.sm
         readonly property real mascotArcWidth: 2
         readonly property real mascotGapAngle: 40
         readonly property real mascotSphereRatio: 0.55
         readonly property real mascotGazeRange: 2
         readonly property real mascotBlinkHeight: 3
+        readonly property real mascotVolumeBarW: 84
+        readonly property real mascotVolumeBarH: 10
         readonly property real mascotSquash: 0.16
         readonly property real mascotSleepLid: 0.62
         readonly property real mascotSleepGap: 0.75
         readonly property real mascotSleepOpacity: 0.55
         readonly property real gazeSaccadeThreshold: 0.12
-        readonly property real mascotRollRadius: 8.5
+        readonly property real mascotRollRadius: root.radius.xs
         readonly property real gazeSpanX: 300
         readonly property real gazeSpanY: 240
     }

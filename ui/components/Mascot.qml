@@ -6,8 +6,6 @@ import qs.ui
 Item {
     id: root
 
-    anchors.fill: parent
-
     property var screen: null
 
     property real aimX: 0
@@ -30,6 +28,12 @@ Item {
     property int cursorFailures: 0
     property bool _blinking: false
     property bool _doubleBlink: false
+    property bool volumeActive: false
+    property bool attentionActive: false
+    property real morph: root.volumeActive ? 1 : 0
+    Behavior on morph {
+        NumberAnimation { duration: Theme.motion.slow; easing.type: Easing.InOutCubic }
+    }
 
     readonly property real cx: width / 2
     readonly property real cy: height / 2
@@ -85,7 +89,7 @@ Item {
     }
 
     function trackTo(tx, ty, dur) {
-        const mag = Math.min(1, Math.sqrt(tx * tx + ty * ty))
+        var mag = Math.min(1, Math.sqrt(tx * tx + ty * ty))
         root.trackRadius = mag * Theme.size.mascotGazeRange
         root.trackAngle = Math.atan2(ty, tx) * 180 / Math.PI
         root.animateOrbit(root.trackAngle, root.trackRadius,
@@ -100,11 +104,11 @@ Item {
             tx = 0
             ty = 0
         }
-        const dx = tx - root.aimX
-        const dy = ty - root.aimY
+        var dx = tx - root.aimX
+        var dy = ty - root.aimY
         if (dx * dx + dy * dy < Theme.size.gazeSaccadeThreshold * Theme.size.gazeSaccadeThreshold)
             return
-        const now = Date.now()
+        var now = Date.now()
         if (now - root.lastSaccade < Theme.motion.saccadeHold)
             return
         root.lastSaccade = now
@@ -120,8 +124,8 @@ Item {
     function aimLocal(px, py) {
         if (root.cursorTracking)
             return
-        const hw = root.width / 2
-        const hh = root.height / 2
+        var hw = root.width / 2
+        var hh = root.height / 2
         if (hw <= 0 || hh <= 0)
             return
         root.lastMovement = Date.now()
@@ -130,14 +134,36 @@ Item {
         root.aimGaze((px - root.cx) / hw, (py - root.cy) / hh)
     }
 
+    function lookAt(nx, ny) {
+        root.attentionActive = false
+        if (root.cursorTracking)
+            return
+        root.lastMovement = Date.now()
+        if (root.sleeping)
+            root.sleeping = false
+        root.aimGaze(nx, ny)
+    }
+
+    function notificationGaze(nx, ny) {
+        root.attentionActive = true
+        root.lastMovement = Date.now()
+        if (root.sleeping)
+            root.sleeping = false
+        root.aimGaze(nx, ny)
+    }
+
+    function releaseNotificationGaze() {
+        root.attentionActive = false
+    }
+
     function startRoll() {
         if (Theme.motion.reducedMotion || root.rolling || root.sleeping)
             return
         root.rolling = true
         root._rollLoop = Math.random() < 0.35
-        const dir = Math.random() < 0.5 ? -1 : 1
-        const arcSweep = root._rollLoop ? 360 : 110 + Math.random() * 150
-        const dur = Math.round(Theme.motion.roll * arcSweep / 180)
+        var dir = Math.random() < 0.5 ? -1 : 1
+        var arcSweep = root._rollLoop ? 360 : 110 + Math.random() * 150
+        var dur = Math.round(Theme.motion.roll * arcSweep / 180)
         angleAnim.stop()
         radiusAnim.stop()
         angleAnim.easing.type = Easing.InOutCubic
@@ -217,22 +243,6 @@ Item {
 
     Component.onCompleted: if (!Compositor.isNiri) cursorProbe.running = true
 
-    HoverHandler {
-        id: localHover
-        onPointChanged: {
-            if (!localHover.hovered)
-                return
-            const p = localHover.point.position
-            root.aimLocal(p.x, p.y)
-        }
-        onHoveredChanged: {
-            if (!localHover.hovered)
-                return
-            const p = localHover.point.position
-            root.aimLocal(p.x, p.y)
-        }
-    }
-
     Process {
         id: cursorQuery
         command: ["hyprctl", "-j", "cursorpos"]
@@ -254,6 +264,7 @@ Item {
                 root.lastMovement = Date.now()
                 if (root.sleeping)
                     root.sleeping = false
+                root.attentionActive = false
                 root.aimGaze((p.x - root.eyeX) / Theme.size.gazeSpanX,
                              (p.y - root.eyeY) / Theme.size.gazeSpanY)
             }
@@ -268,7 +279,7 @@ Item {
         id: poll
         interval: root.sleeping ? Theme.motion.pollIdle : Theme.motion.pollActive
         repeat: true
-        running: root.cursorTracking
+        running: root.cursorTracking && root.visible
         onTriggered: {
             if (!cursorQuery.running)
                 cursorQuery.running = true
@@ -279,6 +290,7 @@ Item {
         interval: Theme.motion.idleGaze
         repeat: true
         running: !Theme.motion.reducedMotion && !root.sleeping && !root.rolling
+                 && root.visible
         onTriggered: {
             if (Date.now() - root.lastMovement > Theme.motion.wanderAfter)
                 root.aimGaze(Math.random() * 2 - 1, Math.random() * 1.5 - 0.75)
@@ -288,7 +300,7 @@ Item {
     Timer {
         interval: Theme.motion.play
         repeat: true
-        running: !Theme.motion.reducedMotion && !root.sleeping
+        running: !Theme.motion.reducedMotion && !root.sleeping && root.visible
         onTriggered: {
             if (!root.rolling && Date.now() - root.lastMovement > Theme.motion.wanderAfter && Math.random() < 0.5)
                 root.startRoll()
@@ -298,9 +310,9 @@ Item {
     Timer {
         interval: Theme.motion.sleepCheck
         repeat: true
-        running: true
+        running: root.visible
         onTriggered: {
-            const idle = Date.now() - root.lastMovement
+            var idle = Date.now() - root.lastMovement
             if (!root.sleeping && idle > Theme.motion.sleepAfter)
                 root.sleeping = true
             else if (root.sleeping && idle < Theme.motion.sleepAfter)
@@ -311,31 +323,34 @@ Item {
     Timer {
         interval: Theme.motion.blink
         repeat: true
-        running: !Theme.motion.reducedMotion && !root.sleeping
+        running: !Theme.motion.reducedMotion && !root.sleeping && root.visible
         onTriggered: root.blinkOnce(true)
     }
 
-    Item {
-        id: ring
-        property real arcAngle: 0
-        x: root.cx - root.ringRadius
-        y: root.cy - root.ringRadius
-        width: root.ringRadius * 2
-        height: root.ringRadius * 2
-        rotation: ring.arcAngle
-        opacity: 1 - Theme.size.mascotSleepOpacity * root.sleep
+        Item {
+            id: ring
+            property real arcAngle: 0
+            x: root.cx - root.ringRadius
+            y: root.cy - root.ringRadius
+            width: root.ringRadius * 2
+            height: root.ringRadius * 2
+            rotation: root.volumeActive ? 90 : ring.arcAngle
+            opacity: 1 - Theme.size.mascotSleepOpacity * root.sleep
 
-        Behavior on rotation {
-            enabled: !Theme.motion.reducedMotion
-            NumberAnimation { duration: Theme.motion.slow; easing.type: Easing.InOutCubic }
-        }
+            Behavior on rotation {
+                enabled: !Theme.motion.reducedMotion
+                NumberAnimation {
+                    duration: Theme.motion.slow
+                    easing.type: Easing.InOutCubic
+                }
+            }
 
         Timer {
             interval: Theme.motion.arcTurn
             repeat: true
-            running: !Theme.motion.reducedMotion && !root.sleeping
+            running: !Theme.motion.reducedMotion && !root.sleeping && root.visible
             onTriggered: {
-                const steps = [90, 180, 270]
+                var steps = [90, 180, 270]
                 ring.arcAngle += steps[Math.floor(Math.random() * steps.length)]
             }
         }
@@ -390,7 +405,7 @@ Item {
         height: 0
         property real angle: 0
         property real radius: 0
-        rotation: orbit.angle
+        rotation: orbit.angle * (1 - root.morph)
 
         NumberAnimation {
             id: angleAnim
@@ -408,12 +423,13 @@ Item {
 
         Rectangle {
             id: sphere
-            x: orbit.radius - width / 2
+            readonly property real m: root.morph
+            x: orbit.radius * (1 - root.morph) - width / 2
             y: -height / 2
-            width: root.eyeWidth
-            height: root.eyeHeight
+            width: root.eyeWidth + (Theme.size.mascotVolumeBarW - root.eyeWidth) * m
+            height: root.eyeHeight + (Theme.size.mascotVolumeBarH - root.eyeHeight) * m
             radius: height / 2
-            rotation: -orbit.angle
+            rotation: -orbit.angle * (1 - root.morph)
             color: Theme.color.accent
         }
     }

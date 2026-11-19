@@ -14,7 +14,8 @@ print/brand material). Treat them as reference, not as files to copy.
 1. **Monochrome first.** Black, white and neutral greys carry ~90% of every screen.
    Exactly **one** accent: Nothing Red. Red covers **≤ 2%** of the viewport.
 2. **No gradients, no glows, no colored icons, no emoji, no serif fonts.**
-   Exception: OS 4-style translucent "glass" surfaces (§6).
+   Exceptions: OS 4-style translucent "glass" surfaces (§6) and the red mascot
+   sphere (§7.3) — a hero graphic, not a colored icon.
 3. **Shape is the identity.** Pills (full radius), circles, and superellipse
    (squircle) cards. Never a large card with a small radius.
 4. **Typography does the work.** Uppercase mono labels with wide tracking +
@@ -36,10 +37,10 @@ print/brand material). Treat them as reference, not as files to copy.
 | **Transparent, not decorative** | Show the system state plainly. No ornamental chrome. |
 | **Technical honesty** | Mono metadata, IDs, units, registration marks. UI looks like an instrument. |
 | **Monochrome contrast** | Pure black canvas, pure white content. Greys only separate layers. |
-| **One loud moment** | A screen gets one red highlight or one oversized dot-matrix number. Not both competing. |
+| **One loud moment** | A screen gets one red highlight or one oversized dot-matrix number. Not both competing. The mascot sphere (§7.3) is that highlight and hides while the OSD is visible. |
 | **Soft hardware** | Pills and squircles soften an otherwise strict, industrial layout. |
 | **Density with air** | Dense information inside cards, generous negative space between groups. |
-| **Motion as signal** | Short, mechanical, purposeful. Never playful bouncing. |
+| **Motion as signal** | Short, mechanical, purposeful. Never playful bouncing. The mascot (§7.3) uses the same restrained vocabulary to report state. |
 
 ---
 
@@ -53,7 +54,7 @@ print/brand material). Treat them as reference, not as files to copy.
 - **Primary action = inverse fill**: white pill, black label (dark mode). Red is
   *not* the default button color.
 - **Red is a signal, not a theme**: destructive action, recording/live, selected
-  special toggle, status dot, one hero graphic.
+  special toggle, status dot, or one hero graphic (the mascot sphere, §7.3).
 - Never introduce green/yellow/blue for success/warning. Success is a white dot or
   a neutral label. Error is red. Warning is white text on a grey chip.
 - Text on red must be white. Red text on black is allowed only at ≥ 18px / bold or
@@ -369,9 +370,31 @@ Use these sparingly to make the UI feel like Nothing (2–4 per screen, not all)
 - **Barcode strip**: monochrome, only in technical/info cards.
 - **Inverted white pill** inside a dark layout for one label (e.g. `TUESDAY`).
 - **Oversized numeral bleeding to the card edge** (clipped by the squircle).
+- **Companion glyph**: the mascot (§7.3), one per screen, in the top bar only.
 
 Never: emoji, colored illustrations, 3D renders, skeuomorphic hardware, glossy
 highlights, rainbow gradients.
+
+### 7.3 Mascot (companion glyph)
+
+One animated companion is allowed in the top bar: a broken **ring** in
+`textPrimary` plus a single red **sphere** (`accent`) as its eye. It is the one
+hero graphic on screen (§1) and is hidden whenever an OSD is visible, so red
+never appears twice at once.
+
+- Geometry: 24px ring (`Theme.size.mascotRingRadius` = 12), hosted in the top
+  bar box. Sphere diameter = `2 × ringRadius × mascotSphereRatio` (0.55).
+  Ring gap `40°`, narrowing while asleep.
+- Stroke: `Theme.size.mascotArcWidth` = 2px, round caps/joins. No fill, no glow,
+  no second hue, no gradient, no shadow.
+- States: idle gaze (pointer / compositor), blink, sleep, roll, volume morph.
+  These report pointer or system state — never a loop for its own sake.
+- Ambient intervals (§9) may loop. Transitions stay inside the 80–320ms scale,
+  translation ≤ 8px, scale ≤ 1.02, no bounce and no rotation of functional UI.
+- Under `reducedMotion`, every ambient timer stops and the mascot snaps to its
+  neutral open-eye, centred-gaze state.
+- Set `Accessible.role: Graphic` and a stable `Accessible.name`. State must never
+  be carried by the mascot alone — pair it with the OSD label.
 
 ---
 
@@ -482,12 +505,35 @@ Easings:
 - Hero / large surface: `Easing.OutQuint`
 - Toggle knob: spring, `stiffness 380`, `damping 30`, `mass 1`
 
+Mascot ambient tokens (§7.3) — all stop under reduced motion:
+
+| Token | Value (ms) | Use |
+|---|---|---|
+| `blink` | 3700 | Blink interval |
+| `blinkMove` | 90 | Lid close / open |
+| `blinkHold` | 150 | Closed hold |
+| `doubleBlinkGap` | 150 | Optional second blink |
+| `saccade` | 110 | Gaze jump |
+| `saccadeHold` | 180 | Minimum gap between gazes |
+| `idleGaze` | 2400 | Idle wander interval |
+| `wanderAfter` | 4500 | Idle threshold |
+| `play` | 4000 | Roll check interval |
+| `roll` | 900 | Roll at 180° |
+| `rollHold` | 120 | Hold after roll |
+| `arcTurn` | 8000 | Ring re-aim interval |
+| `sleepAfter` | 16000 | Idle → sleep |
+| `sleepCheck` | 700 | Idle polling |
+| `pollActive` / `pollIdle` | 90 / 240 | Pointer polling |
+
 Rules:
-- Animate opacity and 8px max translation. No scale above 1.02, no rotation.
+- Animate opacity and 8px max translation. No scale above 1.02. No rotation of
+  functional UI — the mascot ring (§7.3) is exempt.
 - Dot-matrix values do not interpolate — swap with a 2-frame flicker (60 ms).
-- No looping decorative animation except a 1.5s pulse on a live red dot.
+- No looping decorative animation except (a) a 1.5s pulse on a live red dot and
+  (b) the mascot's ambient states (§7.3), which report state rather than decorate.
 - Respect reduced motion: all durations → 80 ms, springs → linear, disable flicker
-  and pulse.
+  and pulse, and freeze the mascot (§7.3) in its neutral state with every ambient
+  timer stopped.
 
 ---
 
@@ -626,7 +672,8 @@ font.family: "Arial"             // off-system font
 
 Before calling any UI task done:
 
-- [ ] Colors only from `Theme.color`; no second accent hue; red ≤ 2% of viewport.
+- [ ] Colors only from `Theme.color`; no second accent hue; red ≤ 2% of viewport;
+      the mascot sphere is the single hero red and hides during the OSD.
 - [ ] Radii from the scale; large cards are squircles/pills, not 8px rectangles.
 - [ ] Uppercase mono labels with correct tracking; dot-matrix ≥ 24px, numerals only.
 - [ ] Spacing only from the 4pt scale; grid/gutters respected.
@@ -634,7 +681,8 @@ Before calling any UI task done:
 - [ ] Hover / pressed / focus / disabled / selected states implemented.
 - [ ] Keyboard navigation + visible focus ring; hit targets ≥ 44 (≥ 32 dense).
 - [ ] Contrast checked; red never used for small body text.
-- [ ] Motion tokens used; reduced-motion honored; no looping decoration.
+- [ ] Motion tokens used; reduced-motion honored (mascot frozen); no loops except
+      the live-dot pulse and mascot ambient states (§7.3, §9).
 - [ ] Both dark and light themes render correctly.
 - [ ] Fonts bundled; no proprietary Nothing fonts unless licensed in-repo.
 - [ ] Works at 1×, 1.5×, 2× and at minimum window size.
