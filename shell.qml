@@ -7,11 +7,16 @@ import Quickshell.Services.UPower
 import qs.ui
 import qs.ui.components
 
-PanelWindow {
-    id: shell
+ShellRoot {
+    PanelWindow {
+        id: shell
 
     readonly property var sinkAudio:
         Pipewire.defaultAudioSink ? Pipewire.defaultAudioSink.audio : null
+
+    property bool floatingMode: false
+    readonly property real mascotBottomY:
+        floatingMode ? backdrop.y + backdrop.height : Theme.size.dropHeight
 
     property bool osdActive: false
     property string osdKind: "vol"
@@ -410,9 +415,10 @@ PanelWindow {
         top: true
         left: true
         right: true
+        bottom: true
     }
 
-    implicitHeight: Math.max(Theme.size.settingsHeight + Theme.space.xs,
+    implicitHeight: Math.max(Math.max(Theme.size.dropHeight, Theme.size.chargeHeight) + Theme.space.xs,
                              notificationPill.visible
                                  ? notificationPill.y + notificationPill.height + Theme.space.lg
                                  : 0)
@@ -440,31 +446,47 @@ PanelWindow {
             width: notificationPill.visible ? notificationPill.width : 0
             height: notificationPill.visible ? notificationPill.height : 0
         }
+
+        Region {
+            x: notificationNeck.visible ? notificationNeck.x : 0
+            y: notificationNeck.visible ? notificationNeck.y : 0
+            width: notificationNeck.visible ? notificationNeck.width : 0
+            height: notificationNeck.visible ? notificationNeck.height : 0
+        }
     }
 
     TopBackdrop {
         id: backdrop
         screen: shell.screen
+        floating: shell.floatingMode
         volumeActive: shell.osdActive
+        debugOpen: debugOverlay.alive
+        launcherOpen: launcher.alive
         volume: shell.osdValue
         osdKind: shell.osdKind
         chargeStatus: shell.chargeStatus
         osdMuted: shell.osdMuted
         osdLabel: shell.osdLabel
-        anchors.top: parent.top
         x: {
             const w = parent.width
             const centered = w / 2 - backdrop.width / 2
             const rightEdge = w / 2 + Theme.size.dropWidth / 2 - backdrop.width
             return centered + (rightEdge - centered) * backdrop.anchorMix
         }
+        y: floating ? Theme.space.snug / 2 : 0
+
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
+                easing.type: Easing.InOutCubic
+            }
+        }
     }
 
     NotificationPill {
         id: notificationPill
         mascotCenterX: backdrop.x + backdrop.mascotCenterX
-        mascotBottomY: Theme.size.dropHeight
-        suspended: backdrop.menuOpen
+        mascotBottomY: shell.mascotBottomY
 
         onAttentionRequested: function (px, py) {
             backdrop.glanceAt(px, py)
@@ -474,11 +496,60 @@ PanelWindow {
     }
 
     NotificationNeck {
+        id: notificationNeck
         mascotCenterX: notificationPill.mascotCenterX
-        topY: notificationPill.mascotBottomY
-        mergeY: notificationPill.y - notificationPill.mascotBottomY
+        topY: shell.mascotBottomY - Theme.size.hairline
+        mergeY: notificationPill.y - (shell.mascotBottomY - Theme.size.hairline)
         strength: notificationPill.visible ? notificationPill.neckOpacity : 0
         pinch: notificationPill.neckPinch
+        retractX: notificationPill.phase === "absorbing" ? notificationPill.flowX : 1
+        retractY: notificationPill.phase === "absorbing" ? notificationPill.flowY : 1
+        baseTaper: notificationPill.neckTaper
         fillColor: notificationPill.fillColor
+    }
+    }
+
+    DebugOverlay {
+        id: debugOverlay
+        screen: shell.screen
+        floatingMode: shell.floatingMode
+        onFloatingModeToggled: function (value) { shell.floatingMode = value }
+        mascotStartX: backdrop.x + backdrop.mascotCenterX
+        mascotStartY: backdrop.y + backdrop.mascotCenterY
+    }
+
+    Launcher {
+        id: launcher
+        screen: shell.screen
+        floating: shell.floatingMode
+        topAnchorY: backdrop.y
+        mascotStartX: backdrop.x + backdrop.mascotCenterX
+        mascotStartY: backdrop.y + backdrop.mascotCenterY
+        backdropMascot: backdrop.mascotItem
+    }
+
+    ClipboardMenu {
+        id: clipboardMenu
+        screen: shell.screen
+        floating: shell.floatingMode
+        topAnchorY: backdrop.y
+        mascotStartX: backdrop.x + backdrop.mascotCenterX
+        mascotStartY: backdrop.y + backdrop.mascotCenterY
+        backdropMascot: backdrop.mascotItem
+    }
+
+    IpcHandler {
+        target: "symbiont"
+
+        function debug(): void { debugOverlay.toggle() }
+        function debugOpen(): void { debugOverlay.openMenu() }
+        function debugClose(): void { debugOverlay.closeMenu() }
+        function debugTogglePlaceholder(): void { debugOverlay.togglePlaceholderIfOpen() }
+        function launcherOpen(): void { clipboardMenu.closeClipboard(); launcher.openLauncher() }
+        function launcherClose(): void { launcher.closeLauncher() }
+        function launcherToggle(): void { clipboardMenu.closeClipboard(); launcher.toggleLauncher() }
+        function clipboardOpen(): void { launcher.closeLauncher(); clipboardMenu.openClipboard() }
+        function clipboardClose(): void { clipboardMenu.closeClipboard() }
+        function clipboardToggle(): void { launcher.closeLauncher(); clipboardMenu.toggleClipboard() }
     }
 }

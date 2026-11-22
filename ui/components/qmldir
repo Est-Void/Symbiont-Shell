@@ -10,9 +10,16 @@ ConnectionWifi 1.0 ConnectionWifi.qml
 ConnectionBt 1.0 ConnectionBt.qml
 ChargeControl 1.0 ChargeControl.qml
 Squircle 1.0 Squircle.qml
+AttachedSurface 1.0 AttachedSurface.qml
+DotRule 1.0 DotRule.qml
+DotCluster 1.0 DotCluster.qml
 NotificationPill 1.0 NotificationPill.qml
 NotificationNeck 1.0 NotificationNeck.qml
-SectionSelector 1.0 SectionSelector.qml
-SettingsRow 1.0 SettingsRow.qml
-SystemSection 1.0 SystemSection.qml
-SettingsMenu 1.0 SettingsMenu.qml
+NToggle 1.0 NToggle.qml
+NTextField 1.0 NTextField.qml
+LauncherAppRow 1.0 LauncherAppRow.qml
+LauncherList 1.0 LauncherList.qml
+ClipboardMenu 1.0 clipmenus/ClipboardMenu.qml
+ClipboardRow 1.0 clipmenus/ClipboardRow.qml
+singleton ClipHistory 1.0 clipmenus/ClipHistory.qml
+

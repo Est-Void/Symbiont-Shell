@@ -28,6 +28,10 @@ Item {
     property int cursorFailures: 0
     property bool _blinking: false
     property bool _doubleBlink: false
+    property bool _snap: false
+    property alias orbitAngle: orbit.angle
+    property alias orbitRadius: orbit.radius
+    property alias ringAngle: ring.arcAngle
     property bool volumeActive: false
     property bool attentionActive: false
     property real morph: root.volumeActive ? 1 : 0
@@ -51,11 +55,12 @@ Item {
     Accessible.name: "Symbiont mascot"
 
     Behavior on sleep {
-        enabled: !Theme.motion.reducedMotion
+        enabled: !Theme.motion.reducedMotion && !root._snap
         NumberAnimation { duration: Theme.motion.slow; easing.type: Easing.InOutCubic }
     }
 
     Behavior on blink {
+        enabled: !root._snap
         NumberAnimation { duration: Theme.motion.blinkMove; easing.type: Easing.OutCubic }
     }
 
@@ -142,6 +147,33 @@ Item {
         if (root.sleeping)
             root.sleeping = false
         root.aimGaze(nx, ny)
+    }
+
+    function syncVisualFrom(other) {
+        if (!other)
+            return
+        root._snap = true
+        root.stopRoll()
+        blinkClose.stop()
+        doubleBlink.stop()
+        rollDone.stop()
+        root._blinking = false
+        root._doubleBlink = false
+        root.sleeping = other.sleeping
+        root.sleep = other.sleep
+        root.blink = other.blink
+        angleAnim.stop()
+        radiusAnim.stop()
+        root.trackAngle = other.trackAngle
+        root.trackRadius = other.trackRadius
+        root.orbitAngle = other.orbitAngle
+        root.orbitRadius = other.orbitRadius
+        root.ringAngle = other.ringAngle
+        root.aimX = other.aimX
+        root.aimY = other.aimY
+        root.lastMovement = Date.now()
+        root.lastSaccade = Date.now()
+        root._snap = false
     }
 
     function notificationGaze(nx, ny) {
@@ -337,13 +369,13 @@ Item {
             rotation: root.volumeActive ? 90 : ring.arcAngle
             opacity: 1 - Theme.size.mascotSleepOpacity * root.sleep
 
-            Behavior on rotation {
-                enabled: !Theme.motion.reducedMotion
-                NumberAnimation {
-                    duration: Theme.motion.slow
-                    easing.type: Easing.InOutCubic
-                }
+        Behavior on rotation {
+            enabled: !Theme.motion.reducedMotion && !root._snap
+            NumberAnimation {
+                duration: Theme.motion.slow
+                easing.type: Easing.InOutCubic
             }
+        }
 
         Timer {
             interval: Theme.motion.arcTurn

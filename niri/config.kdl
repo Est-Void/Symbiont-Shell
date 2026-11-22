@@ -1,0 +1,31 @@
+// Symbiont Shell — niri keybinds.
+//
+// Include this file from your niri config:
+//   include "/path/to/Symbiont-Shell/niri/config.kdl"
+//
+// The bind assumes the repo lives at $HOME/Projects/Symbiont-Shell and the
+// shell is launched with `qs -p .` from that directory. Adjust the path or the
+// IPC target if your setup differs.
+
+binds {
+    // Debug menu: the mascot flows from the top edge into the panel.
+    // Close the menu with Escape or by clicking outside.
+    Mod+Alt+B hotkey-overlay-title="Symbiont: debug" {
+        spawn-sh "qs -p \"$HOME/Projects/Symbiont-Shell\" ipc call symbiont debugOpen";
+    }
+
+    // Toggle the placeholder while the debug menu is open.
+    Mod+Alt+Space hotkey-overlay-title="Symbiont: debug toggle" {
+        spawn-sh "qs -p \"$HOME/Projects/Symbiont-Shell\" ipc call symbiont debugTogglePlaceholder";
+    }
+
+    // Launcher: the mascot flows from the top edge into the search panel.
+    Mod+Alt+L hotkey-overlay-title="Symbiont: launcher" {
+        spawn-sh "qs -p \"$HOME/Projects/Symbiont-Shell\" ipc call symbiont launcherToggle";
+    }
+
+    // Clipboard: same flow, manifest of recent clips.
+    Mod+Alt+V hotkey-overlay-title="Symbiont: clipboard" {
+        spawn-sh "qs -p \"$HOME/Projects/Symbiont-Shell\" ipc call symbiont clipboardToggle";
+    }
+}

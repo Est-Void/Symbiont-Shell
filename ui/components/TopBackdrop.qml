@@ -10,6 +10,10 @@ Item {
     property string mode: "droplet"
     property string mascotPosition: "center"
     property bool volumeActive: false
+    property bool debugOpen: false
+    property bool launcherOpen: false
+    property bool floating: false
+    readonly property var mascotItem: mascot
     property real volume: 0
     property string osdKind: "vol"
     property bool osdMuted: false
@@ -23,33 +27,16 @@ Item {
     readonly property real statusWidth: root.langActive ? langCtl.implicitWidth
         : root.wifiActive ? wifiCtl.implicitWidth
         : btCtl.implicitWidth
-    readonly property bool menuOpen: root.mode === "menu"
-    readonly property bool settingsOpen: root.mode === "settings"
-    readonly property bool centeredMode: root.mode === "menu" || root.settingsOpen || root.volumeActive
+    readonly property real chargePanelWidth:
+        Theme.size.chargeValueWidth + Theme.space.sm + Theme.size.chargeTrackWidth
+        + Theme.space.md * 2
+    readonly property bool centeredMode: root.volumeActive
     readonly property int expandDuration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
     readonly property int expandEasing: Easing.InOutCubic
-    property bool panelContentVisible: false
-
-    onModeChanged: {
-        if (root.mode === "menu" || root.mode === "settings") {
-            root.panelContentVisible = false
-            panelRevealTimer.restart()
-        } else {
-            panelRevealTimer.stop()
-            root.panelContentVisible = false
-        }
-    }
-
-    Timer {
-        id: panelRevealTimer
-        interval: root.expandDuration
-        repeat: false
-        onTriggered: root.panelContentVisible = true
-    }
 
 
-    // 1 = right-edge anchored (droplet / bar), 0 = centered (menu / volume)
-    property real anchorMix: root.centeredMode ? 0 : 1
+    // 1 = right-edge anchored (droplet / bar), 0 = centered (volume / floating)
+    property real anchorMix: root.floating || root.centeredMode ? 0 : 1
     Behavior on anchorMix {
         NumberAnimation {
             duration: root.expandDuration
@@ -66,7 +53,7 @@ Item {
                       (p.y - ey) / (root.height / 2))
     }
 
-    readonly property real mascotBox: Theme.size.dropWidth
+    readonly property real mascotBox: root.floating ? Theme.size.dropHeight : Theme.size.dropWidth
     readonly property real mascotCenterX: mascot.x + mascot.width / 2
     readonly property real mascotCenterY: mascot.y + mascot.height / 2
 
@@ -88,17 +75,25 @@ Item {
             mascot.lookAt(0, 0)
     }
 
-    width: root.chargeActive ? Theme.size.chargeWidth
-         : root.statusActive ? (root.statusWidth + Theme.space.lg * 2)
-         : root.settingsOpen ? Theme.size.settingsWidth
-         : root.menuOpen ? Theme.size.menuWidth
-         : root.volumeActive ? (volumeCtl.implicitWidth + Theme.space.lg * 2)
+    opacity: root.debugOpen ? 0 : 1
+    visible: !root.launcherOpen && opacity > 0.001
+    Behavior on opacity {
+        NumberAnimation {
+            duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    width: root.chargeActive ? root.chargePanelWidth
+         : root.statusActive ? (root.statusWidth + Theme.space.md * 2)
+         : root.volumeActive ? (volumeCtl.implicitWidth + Theme.space.md * 2)
          : root.mode === "bar" ? (barLayout.implicitWidth + Theme.size.mascotModuleGap + root.mascotBox)
+         : root.floating ? Theme.size.dropHeight
          : Theme.size.dropWidth
     height: root.chargeActive ? Theme.size.chargeHeight
-          : root.statusActive ? Theme.size.dropHeight
-          : root.settingsOpen ? Theme.size.settingsHeight
-          : root.menuOpen ? Theme.size.menuHeight : Theme.size.dropHeight
+          : root.volumeActive ? Theme.size.dropHeight
+          : root.mode === "bar" ? Theme.size.dropHeight
+          : Theme.size.dropHeight
 
     clip: true
 
@@ -118,8 +113,6 @@ Item {
     readonly property real cx: width / 2
     readonly property real topHalf: width / 2
     property real topRadius: root.chargeActive ? Theme.radius.lg
-                         : root.settingsOpen ? Theme.size.settingsTopRadius
-                         : root.menuOpen ? Theme.size.menuTopRadius
                          : root.mode === "bar" ? Theme.size.barTopRadius
                          : Theme.size.dropTopRadius
     Behavior on topRadius {
@@ -131,8 +124,6 @@ Item {
 
     readonly property real bodyHalf: Math.max(width / 2 - topRadius, 0)
     property real bottomR: root.chargeActive ? Theme.radius.lg
-                         : root.settingsOpen ? Theme.size.settingsBottomRadius
-                         : root.menuOpen ? Theme.size.menuBottomRadius
                          : root.mode === "bar" ? Theme.size.barBottomRadius
                          : Theme.size.dropBodyRadius
     Behavior on bottomR {
@@ -147,12 +138,6 @@ Item {
 
     Accessible.role: Accessible.Graphic
     Accessible.name: "Top bar backdrop"
-
-    function closeMenu() {
-        if (root.mode !== "menu" && root.mode !== "settings")
-            return
-        root.mode = hoverCtl.hovered ? "bar" : "droplet"
-    }
 
     function outlinePoints() {
         const cx = root.cx
@@ -194,13 +179,12 @@ Item {
         return points
     }
 
-    Keys.onEscapePressed: root.closeMenu()
-
     Shape {
         x: 0
         y: 0
         width: root.width
         height: root.shapeHeight
+        visible: !root.floating
 
         ShapePath {
             fillColor: Theme.color.surface1
@@ -215,12 +199,24 @@ Item {
         }
     }
 
+    Rectangle {
+        x: 0
+        y: 0
+        width: root.width
+        height: root.shapeHeight
+        radius: height / 2
+        color: Theme.color.surface1
+        border.width: Theme.size.hairline
+        border.color: Theme.color.borderSubtle
+        visible: root.floating
+    }
+
     Item {
         id: head
         x: 0
         y: 0
         width: root.width
-        height: root.chargeActive || root.settingsOpen ? root.height : Theme.size.dropHeight
+        height: root.chargeActive ? root.height : Theme.size.dropHeight
 
         // Left modules stay anchored next to the mascot (right side),
         // so during the width animation the pill reveals them via clip
@@ -239,8 +235,7 @@ Item {
         Mascot {
             id: mascot
             width: root.mascotBox
-            height: root.settingsOpen ? Theme.size.dropHeight : head.height
-            y: root.settingsOpen ? (Theme.size.settingsHeaderHeight - Theme.size.dropHeight) / 2 : 0
+            height: head.height
             x: {
                 const rightAligned = head.width - width
                 const centered = (head.width - width) / 2
@@ -249,8 +244,8 @@ Item {
             screen: root.screen
             volumeActive: root.volumeActive
             transformOrigin: Item.Center
-            opacity: root.volumeActive ? 0 : 1
-            scale: root.volumeActive ? 0.5 : 1
+            opacity: root.volumeActive || root.debugOpen ? 0 : 1
+            scale: root.volumeActive || root.debugOpen ? 0.5 : 1
             visible: opacity > 0.01
             Behavior on opacity {
                 NumberAnimation {
@@ -414,7 +409,7 @@ Item {
             id: chargeCtl
             x: 0
             y: 0
-            width: chargeCtl.implicitWidth
+            width: root.chargePanelWidth
             height: chargeCtl.implicitHeight
             value: root.volume
             charging: !root.osdMuted
@@ -425,114 +420,6 @@ Item {
                 NumberAnimation {
                     duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
                     easing.type: Easing.InOutCubic
-                }
-            }
-        }
-
-        SettingsMenu {
-            id: settingsMenu
-            x: 0
-            y: 0
-            width: head.width
-            height: head.height
-            opacity: root.settingsOpen && root.panelContentVisible ? 1 : 0
-            visible: root.settingsOpen && opacity > 0.01
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.fast
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-
-        Item {
-            id: menuButton
-            readonly property real size: Theme.space.lg
-            readonly property real hitSize: Theme.space.xxl
-            x: head.width - hitSize
-            y: 0
-            width: hitSize
-            height: hitSize
-            opacity: root.panelContentVisible ? 1 : 0
-            visible: root.menuOpen && opacity > 0.01
-            z: 1
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.fast
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Rectangle {
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.topMargin: (Theme.size.dropHeight - menuButton.size) / 2
-                anchors.rightMargin: Theme.space.md
-                width: menuButton.size
-                height: width
-                radius: width / 2
-                color: menuHover.hovered ? Theme.color.accentHover : Theme.color.accent
-
-                Canvas {
-                    id: gearIcon
-                    anchors.centerIn: parent
-                    width: Theme.space.md
-                    height: width
-                    onPaint: {
-                        const ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        ctx.strokeStyle = Theme.color.accentText
-                        ctx.lineWidth = Theme.size.hairline * 1.5
-                        ctx.lineCap = "round"
-                        const cx = width / 2
-                        const cy = height / 2
-                        const inner = width * 0.27
-                        const outer = width * 0.46
-                        ctx.beginPath()
-                        for (let i = 0; i < 8; ++i) {
-                            const a = i * Math.PI / 4
-                            ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
-                            ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer)
-                        }
-                        ctx.stroke()
-                        ctx.beginPath()
-                        ctx.arc(cx, cy, inner, 0, Math.PI * 2)
-                        ctx.stroke()
-                        ctx.beginPath()
-                        ctx.arc(cx, cy, inner * 0.3, 0, Math.PI * 2)
-                        ctx.stroke()
-                    }
-                }
-            }
-
-            Accessible.role: Accessible.Button
-            Accessible.name: "Open settings"
-
-            HoverHandler {
-                id: menuHover
-                cursorShape: Qt.PointingHandCursor
-            }
-        }
-
-        TapHandler {
-            onTapped: {
-                const p = menuButton.mapFromItem(head, point.position.x, point.position.y)
-                const inMenuButton = p.x >= 0 && p.x <= menuButton.width
-                    && p.y >= 0 && p.y <= menuButton.height
-                if (root.settingsOpen) {
-                    return
-                } else if (root.menuOpen) {
-                    if (inMenuButton) {
-                        root.mode = "settings"
-                        root.forceActiveFocus()
-                    } else {
-                        root.closeMenu()
-                    }
-                } else {
-                    root.mode = "menu"
-                    root.forceActiveFocus()
                 }
             }
         }
@@ -549,11 +436,8 @@ Item {
                 root.aimAtCursor(hoverCtl.point.position)
                 if (root.mode === "droplet")
                     root.mode = "bar"
-            } else {
-                if (root.menuOpen || root.settingsOpen)
-                    root.closeMenu()
-                else if (root.mode === "bar")
-                    root.mode = "droplet"
+            } else if (root.mode === "bar") {
+                root.mode = "droplet"
             }
         }
     }

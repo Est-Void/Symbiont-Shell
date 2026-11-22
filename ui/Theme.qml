@@ -190,6 +190,7 @@ Singleton {
 
     readonly property QtObject size: QtObject {
         readonly property real hairline: 1
+        readonly property real iconStroke: 1.5
         readonly property real topBarHeight: 38
         readonly property real dropWidth: 50
         readonly property real dropHeight: 36
@@ -204,18 +205,40 @@ Singleton {
         readonly property real mascotModuleGap: 12
         readonly property real mascotCenterWidth: 128
         readonly property real mascotMinWidth: 80
-        readonly property real menuWidth: 240
-        readonly property real menuHeight: 160
-        readonly property real menuTopRadius: root.radius.xs
-        readonly property real menuBottomRadius: root.radius.sm
-        readonly property real settingsWidth: root.space.xxxl * 10 + root.space.xxl
-        readonly property real settingsHeight: root.space.xxxl * 9 + root.space.xxl
-        readonly property real settingsHeaderHeight: root.space.xxl
-        readonly property real settingsRailWidth: root.space.xxxl * 2
-        readonly property real settingsRowHeight: root.space.xxl
-        readonly property real settingsTopRadius: root.radius.lg
-        readonly property real settingsBottomRadius: root.radius.xl
+        readonly property real debugWidth: root.space.xxxl * 8 + root.space.xl
+        readonly property real debugHeight: root.space.xxxl * 6 + root.space.xxl
+        readonly property real debugHeaderHeight: root.space.huge
+        readonly property real debugPadding: root.space.xl
+        readonly property real debugRadius: root.radius.xxl
+        readonly property real debugTitleSize: root.space.xl + root.space.sm
+        readonly property real debugTitleTracking: root.space.xs
+        readonly property real debugRowHeight: root.space.xxxl
+        readonly property real debugEnterScale: 0.97
+        readonly property real debugEnterOffset: root.space.sm
+        readonly property real toggleWidth: root.space.xxl
+        readonly property real toggleHeight: root.space.lg + root.space.xs
+        readonly property real toggleKnob: root.space.lg - root.space.xxs
+        readonly property real toggleInset: root.space.xxs + 1
+        readonly property real launcherWidth: 640
+        readonly property real launcherHeightRatio: 0.5
+        readonly property real launcherRadius: root.radius.xxl
+        readonly property real launcherShoulder: root.space.md
+        readonly property real launcherPadding: root.space.lg
+        readonly property real launcherGap: root.space.snug
+        readonly property real launcherHeaderHeight: root.size.dropHeight
+        readonly property real launcherSearchHeight: root.space.xl + root.space.sm
+        readonly property real launcherRowHeight: root.space.xl + root.space.snug
+        readonly property real launcherRowGap: root.space.sm
+        readonly property real launcherFooterHeight: root.space.lg
+        readonly property real launcherIconTile: root.space.xl
+        readonly property real launcherIconGlyph: root.space.lg
+        readonly property real inputHeight: root.space.xl + root.space.sm
+        readonly property real inputClear: root.space.xl
+        readonly property real scrollbarWidth: root.space.xs
+        readonly property real scrollbarHoverWidth: root.space.xs + root.space.xxs
         readonly property real notificationWidth: 360
+        readonly property real notificationRadius: root.radius.lg
+        readonly property real notificationLineHeight: 1.20
         readonly property real notificationIcon: 32
         readonly property real notificationClose: 32
         readonly property real notificationNeckWidth: 48
@@ -223,9 +246,15 @@ Singleton {
         readonly property real notificationRise: 8
         readonly property real notificationFlowInX: 0.10
         readonly property real notificationFlowInY: 0.35
-        readonly property real notificationFlowOutX: 0.06
-        readonly property real notificationFlowOutY: 0.20
-        readonly property real notificationStretch: 1.02
+        readonly property real notificationFlowPinchInX: 0.22
+        readonly property real notificationFlowOvershootX: 1.03
+        readonly property real notificationFlowWobbleX: 0.99
+        readonly property real notificationFlowSquashY: 0.985
+        readonly property real notificationFlowPullX: 0.45
+        readonly property real notificationFlowPullY: 1.04
+        readonly property real notificationDropDiameter: root.space.xxl
+        readonly property real notificationDropShrink: 0.12
+        readonly property real notificationStretch: 1.05
         readonly property real notificationGazeSpanX: 260
         readonly property real notificationGazeSpanY: 90
         readonly property real chargeWidth: root.space.xxxl * 4 + root.space.xl
@@ -236,9 +265,12 @@ Singleton {
         readonly property real chargeDot: root.space.sm - root.space.xxs
         readonly property real chargeDitherPitch: root.space.xxs
         readonly property real connectionIcon: root.space.md
+        readonly property real connectionMaxWidth: root.space.xxxl * 3 + root.space.xxl
+        readonly property real disabledOpacity: 0.38
         readonly property real focusRingWidth: 2
         readonly property real focusRingOffset: 2
         readonly property real mascotRingRadius: root.radius.sm
+        readonly property real mascotNeckTopY: root.size.dropHeight - root.size.hairline
         readonly property real mascotArcWidth: 2
         readonly property real mascotGapAngle: 40
         readonly property real mascotSphereRatio: 0.55

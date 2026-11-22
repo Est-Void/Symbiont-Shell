@@ -12,6 +12,9 @@ Item {
     property real mergeY: 0
     property real strength: 0
     property real pinch: 0
+    property real retractX: 1
+    property real retractY: 1
+    property real baseTaper: 0
     property color fillColor: Theme.color.surface1
 
     width: Theme.size.notificationNeckWidth
@@ -21,9 +24,18 @@ Item {
     opacity: Math.max(0, Math.min(1, root.strength))
     visible: opacity > 0.001
 
+    transform: Scale {
+        origin.x: root.width / 2
+        origin.y: 0
+        xScale: root.retractX
+        yScale: root.retractY
+    }
+
+    readonly property real _taper: Math.max(0, Math.min(1, root.baseTaper))
     readonly property real _topHalf: root.width * 0.21
     readonly property real _waistHalf: root._topHalf * 0.45 * (1 - Math.max(0, Math.min(1, root.pinch)))
-    readonly property real _bottomHalf: root.width * 0.44
+    readonly property real _bottomHalf: root._waistHalf
+        + (root.width * 0.44 - root._waistHalf) * (1 - root._taper)
     readonly property real _midY: root.height / 2
 
     function _smooth(t) {
@@ -101,7 +113,7 @@ Item {
 
         ShapePath {
             fillColor: "transparent"
-            strokeColor: Theme.color.borderDefault
+            strokeColor: Theme.color.borderStrong
             strokeWidth: Theme.size.hairline
             capStyle: ShapePath.FlatCap
 
@@ -112,7 +124,7 @@ Item {
 
         ShapePath {
             fillColor: "transparent"
-            strokeColor: Theme.color.borderDefault
+            strokeColor: Theme.color.borderStrong
             strokeWidth: Theme.size.hairline
             capStyle: ShapePath.FlatCap
 

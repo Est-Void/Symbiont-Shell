@@ -11,7 +11,6 @@ Item {
 
     property real mascotCenterX: 0
     property real mascotBottomY: Theme.size.dropHeight
-    property bool suspended: false
 
     property var shown: null
     property string phase: "idle"
@@ -22,6 +21,8 @@ Item {
     property real contentOpacity: 0
     property real neckOpacity: 0
     property real neckPinch: 0
+    property real neckTaper: 0
+    property real dropWidth: Theme.size.notificationWidth
     property real _deadline: 0
     property real _pausedAt: 0
 
@@ -37,6 +38,23 @@ Item {
     readonly property bool hovered: pillHover.hovered || closeMouse.containsMouse
     readonly property bool held: root.hovered || root.activeFocus || closeBtn.activeFocus
     readonly property bool expanded: root.held && root.phase === "visible"
+    property real expandScale: root.expanded ? 1 : 0.98
+    property real expandFade: root.expanded ? 1 : 0.88
+
+    Behavior on expandScale {
+        NumberAnimation {
+            duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.base
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Behavior on expandFade {
+        NumberAnimation {
+            duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.base
+            easing.type: Easing.OutCubic
+        }
+    }
+
     readonly property color fillColor: clickArea.pressed ? Theme.color.surface3
         : root.held ? Theme.color.surface2 : Theme.color.surface1
 
@@ -45,16 +63,23 @@ Item {
     readonly property int leaveDuration: Theme.motion.reducedMotion
         ? Theme.motion.instant : Theme.motion.notificationOut
 
-    width: Theme.size.notificationWidth
+    width: root.dropWidth
     height: implicitHeight
     implicitHeight: row.height + root.padY * 2
+
+    Behavior on implicitHeight {
+        NumberAnimation {
+            duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.base
+            easing.type: Easing.OutCubic
+        }
+    }
 
     x: Math.max(root.margin,
                 Math.min((parent ? parent.width : root.width) - root.width - root.margin,
                          root.mascotCenterX - root.width / 2))
     y: root.mascotBottomY + Theme.space.snug
 
-    visible: opacity > 0.001 && !root.suspended
+    visible: opacity > 0.001
     opacity: 0
     activeFocusOnTab: visible
     focus: false
@@ -71,6 +96,12 @@ Item {
             origin.y: 0
             xScale: root.flowX
             yScale: root.flowY
+        },
+        Scale {
+            origin.x: root.width / 2
+            origin.y: 0
+            xScale: root.expandScale
+            yScale: root.expandScale
         }
     ]
 
@@ -83,17 +114,18 @@ Item {
         id: background
         anchors.fill: parent
         n: 4
-        radius: Theme.radius.md
+        radius: Theme.size.notificationRadius
         fillColor: root.fillColor
         strokeColor: Theme.color.borderSubtle
         strokeWidth: Theme.size.hairline
+        opacity: root.expandFade
     }
 
     Squircle {
         anchors.fill: parent
         anchors.margins: -Theme.size.focusRingOffset
         n: 4
-        radius: Theme.radius.md
+        radius: Theme.size.notificationRadius
         fillColor: "transparent"
         strokeColor: Theme.color.accent
         strokeWidth: Theme.size.focusRingWidth
@@ -124,7 +156,7 @@ Item {
     Item {
         id: contentLayer
         anchors.fill: parent
-        opacity: root.contentOpacity
+        opacity: root.contentOpacity * root.expandFade
         enabled: root.phase === "visible"
 
         Item {
@@ -137,7 +169,7 @@ Item {
             Item {
                 id: iconBox
                 x: 0
-                y: root.expanded ? 0 : (row.height - height) / 2
+                y: 0
                 width: root.iconSize
                 height: root.iconSize
 
@@ -230,7 +262,7 @@ Item {
                 Text {
                     width: textColumn.width
                     text: root.shown ? root.shown.message : ""
-                    color: Theme.color.textPrimary
+                    color: Theme.color.textSecondary
                     wrapMode: Text.WordWrap
                     maximumLineCount: root.expanded ? 12 : 1
                     elide: Text.ElideRight
@@ -238,7 +270,7 @@ Item {
                     font.pixelSize: Theme.type.bodySm.size
                     font.weight: Theme.type.bodySm.weight
                     font.letterSpacing: Theme.type.bodySm.tracking
-                    lineHeight: Theme.type.bodySm.lineHeight
+                    lineHeight: Theme.size.notificationLineHeight
                     lineHeightMode: Text.ProportionalHeight
                 }
             }
@@ -247,7 +279,7 @@ Item {
         Item {
             id: closeBtn
             x: root.width - root.padX - root.closeSize
-            y: root.expanded ? root.padY : (root.height - height) / 2
+            y: root.padY
             width: root.closeSize
             height: root.closeSize
             activeFocusOnTab: root.phase === "visible"
@@ -317,16 +349,30 @@ Item {
             NumberAnimation {
                 target: root
                 property: "flowX"
-                to: 0.30
-                duration: Math.round(root.enterDuration * 0.32)
+                to: Theme.size.notificationFlowPinchInX
+                duration: Math.round(root.enterDuration * 0.25)
                 easing.type: Easing.InCubic
             }
             NumberAnimation {
                 target: root
                 property: "flowX"
-                to: 1
-                duration: Math.round(root.enterDuration * 0.68)
+                to: Theme.size.notificationFlowOvershootX
+                duration: Math.round(root.enterDuration * 0.55)
                 easing.type: Easing.OutQuint
+            }
+            NumberAnimation {
+                target: root
+                property: "flowX"
+                to: Theme.size.notificationFlowWobbleX
+                duration: Math.round(root.enterDuration * 0.12)
+                easing.type: Easing.InOutCubic
+            }
+            NumberAnimation {
+                target: root
+                property: "flowX"
+                to: 1
+                duration: Math.round(root.enterDuration * 0.08)
+                easing.type: Easing.InOutCubic
             }
         }
 
@@ -335,14 +381,21 @@ Item {
                 target: root
                 property: "flowY"
                 to: Theme.size.notificationStretch
-                duration: Math.round(root.enterDuration * 0.72)
+                duration: Math.round(root.enterDuration * 0.60)
                 easing.type: Easing.OutQuint
             }
             NumberAnimation {
                 target: root
                 property: "flowY"
+                to: Theme.size.notificationFlowSquashY
+                duration: Math.round(root.enterDuration * 0.25)
+                easing.type: Easing.InOutCubic
+            }
+            NumberAnimation {
+                target: root
+                property: "flowY"
                 to: 1
-                duration: Math.round(root.enterDuration * 0.28)
+                duration: Math.round(root.enterDuration * 0.15)
                 easing.type: Easing.InOutCubic
             }
         }
@@ -370,26 +423,26 @@ Item {
 
         SequentialAnimation {
             PauseAnimation {
-                duration: Math.round(root.enterDuration * 0.75)
+                duration: Math.round(root.enterDuration * 0.68)
             }
             NumberAnimation {
                 target: root
                 property: "neckPinch"
                 to: 1
-                duration: Math.round(root.enterDuration * 0.2)
+                duration: Math.round(root.enterDuration * 0.14)
                 easing.type: Easing.InCubic
             }
         }
 
         SequentialAnimation {
             PauseAnimation {
-                duration: Math.round(root.enterDuration * 0.9)
+                duration: Math.round(root.enterDuration * 0.82)
             }
             NumberAnimation {
                 target: root
                 property: "neckOpacity"
                 to: 0
-                duration: Math.round(root.enterDuration * 0.1)
+                duration: Math.round(root.enterDuration * 0.12)
                 easing.type: Easing.InCubic
             }
         }
@@ -414,19 +467,30 @@ Item {
             easing.type: Easing.InCubic
         }
 
+        NumberAnimation {
+            target: root
+            property: "dropWidth"
+            to: Math.max(root.implicitHeight, Theme.size.notificationDropDiameter)
+            duration: Math.round(root.leaveDuration * 0.45)
+            easing.type: Easing.InQuart
+        }
+
         SequentialAnimation {
             NumberAnimation {
                 target: root
                 property: "flowX"
-                to: 0.32
-                duration: Math.round(root.leaveDuration * 0.45)
-                easing.type: Easing.InCubic
+                to: Theme.size.notificationFlowPullX
+                duration: Math.round(root.leaveDuration * 0.20)
+                easing.type: Easing.InOutCubic
+            }
+            PauseAnimation {
+                duration: Math.round(root.leaveDuration * 0.25)
             }
             NumberAnimation {
                 target: root
                 property: "flowX"
-                to: Theme.size.notificationFlowOutX
-                duration: Math.round(root.leaveDuration * 0.55)
+                to: Theme.size.notificationDropShrink
+                duration: Math.round(root.leaveDuration * 0.50)
                 easing.type: Easing.InQuart
             }
         }
@@ -435,15 +499,18 @@ Item {
             NumberAnimation {
                 target: root
                 property: "flowY"
-                to: Theme.size.notificationStretch
-                duration: Math.round(root.leaveDuration * 0.35)
+                to: Theme.size.notificationFlowPullY
+                duration: Math.round(root.leaveDuration * 0.20)
                 easing.type: Easing.OutCubic
+            }
+            PauseAnimation {
+                duration: Math.round(root.leaveDuration * 0.25)
             }
             NumberAnimation {
                 target: root
                 property: "flowY"
-                to: Theme.size.notificationFlowOutY
-                duration: Math.round(root.leaveDuration * 0.65)
+                to: Theme.size.notificationDropShrink
+                duration: Math.round(root.leaveDuration * 0.55)
                 easing.type: Easing.InQuart
             }
         }
@@ -458,13 +525,13 @@ Item {
 
         SequentialAnimation {
             PauseAnimation {
-                duration: Math.round(root.leaveDuration * 0.7)
+                duration: Math.round(root.leaveDuration * 0.55)
             }
             NumberAnimation {
                 target: root
                 property: "opacity"
                 to: 0
-                duration: Math.round(root.leaveDuration * 0.3)
+                duration: Math.round(root.leaveDuration * 0.45)
                 easing.type: Easing.InCubic
             }
         }
@@ -500,6 +567,19 @@ Item {
             easing.type: Easing.OutCubic
         }
 
+        SequentialAnimation {
+            PauseAnimation {
+                duration: Math.round(root.leaveDuration * 0.50)
+            }
+            NumberAnimation {
+                target: root
+                property: "neckTaper"
+                to: 1
+                duration: Math.round(root.leaveDuration * 0.45)
+                easing.type: Easing.InQuart
+            }
+        }
+
         onFinished: root._finishAbsorb()
     }
 
@@ -508,7 +588,7 @@ Item {
         interval: 200
         repeat: true
         running: root.phase === "visible" && root.shown !== null
-                 && root.shown.timeout > 0 && !root.suspended
+                 && root.shown.timeout > 0
 
         onTriggered: {
             if (root.phase !== "visible" || !root.shown)
@@ -548,24 +628,6 @@ Item {
         }
     }
 
-    onSuspendedChanged: {
-        if (root.suspended) {
-            if (root.phase !== "idle" && root._deadline > 0 && root._pausedAt <= 0)
-                root._pausedAt = Date.now()
-            return
-        }
-        if (root._pausedAt > 0 && root._deadline > 0) {
-            root._deadline += Date.now() - root._pausedAt
-            root._pausedAt = 0
-        }
-        if (root.phase === "idle") {
-            if (Notify.count > 0)
-                root._openNext()
-        } else {
-            root._emitAttention()
-        }
-    }
-
     function _snapshot(entry) {
         const summary = String(entry.summary || "")
         const body = String(entry.body || "")
@@ -590,7 +652,7 @@ Item {
     }
 
     function _openNext() {
-        if (root.phase !== "idle" || root.suspended)
+        if (root.phase !== "idle")
             return
         const entry = root._head()
         if (!entry)
@@ -604,9 +666,11 @@ Item {
         root.contentOpacity = 0
         root.neckOpacity = 1
         root.neckPinch = 0
+        root.neckTaper = 0
         root.flowX = Theme.size.notificationFlowInX
         root.flowY = Theme.size.notificationFlowInY
         root.riseOffset = -Theme.size.notificationRise
+        root.dropWidth = Theme.size.notificationWidth
         nextTimer.stop()
         enterAnim.restart()
         root._emitAttention()
@@ -645,9 +709,11 @@ Item {
         root.contentOpacity = 0
         root.neckOpacity = 0
         root.neckPinch = 0
+        root.neckTaper = 0
         root.flowX = 1
         root.flowY = 1
         root.riseOffset = 0
+        root.dropWidth = Theme.size.notificationWidth
         root.attentionReleased()
         nextTimer.restart()
     }

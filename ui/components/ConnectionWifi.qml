@@ -13,7 +13,7 @@ BracketFrame {
     readonly property real iconS: Theme.size.connectionIcon
     readonly property real pad: Theme.space.xs
     readonly property real gapInner: Theme.space.xs
-    readonly property real maxTextW: Theme.size.menuWidth
+    readonly property real maxTextW: Theme.size.connectionMaxWidth
         - root.bracketR * 2 - root.gapBracket * 2
         - root.iconS - root.gapInner - root.pad * 2
     readonly property string fullText: (root.connected ? "CONNECTED" : "DISCONNECTED")
