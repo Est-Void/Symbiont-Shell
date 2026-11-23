@@ -7,18 +7,23 @@ Item {
     id: root
 
     property var screen: null
-    property string mode: "droplet"
-    property string mascotPosition: "center"
+    property var host: null
     property bool volumeActive: false
     property bool debugOpen: false
     property bool launcherOpen: false
     property bool floating: false
-    readonly property var mascotItem: mascot
+
+    // Hover opens the bar temporarily; IPC open pins it until IPC close.
+    property bool pinned: false
+    property bool hoverOpen: false
+    readonly property bool open: root.pinned || root.hoverOpen
+    readonly property bool barExpanded: root.open && !root.volumeActive
+
+    readonly property var mascotItem: barLayout.mascotItem
     property real volume: 0
     property string osdKind: "vol"
     property bool osdMuted: false
     property string osdLabel: ""
-    property bool chargeStatus: false
     readonly property bool chargeActive: root.volumeActive && root.osdKind === "charge"
     readonly property bool langActive: root.volumeActive && root.osdKind === "lang"
     readonly property bool wifiActive: root.volumeActive && root.osdKind === "wifi"
@@ -45,34 +50,50 @@ Item {
     }
 
     function aimAtCursor(p) {
-        if (!mascot || root.width <= 0 || root.height <= 0)
+        if (!root.mascotItem || root.width <= 0 || root.height <= 0)
             return
-        const ex = mascot.x + mascot.width / 2
-        const ey = mascot.y + mascot.height / 2
-        mascot.lookAt((p.x - ex) / (root.width / 2),
-                      (p.y - ey) / (root.height / 2))
+        root.mascotItem.lookAt((p.x - root.mascotCenterX) / (root.width / 2),
+                               (p.y - root.mascotCenterY) / (root.height / 2))
     }
 
-    readonly property real mascotBox: root.floating ? Theme.size.dropHeight : Theme.size.dropWidth
-    readonly property real mascotCenterX: mascot.x + mascot.width / 2
-    readonly property real mascotCenterY: mascot.y + mascot.height / 2
+    readonly property real mascotBox:
+        root.floating ? Theme.size.dropHeight : Theme.size.dropWidth
+    readonly property real mascotCenterX: barLayout.mascotCenterX
+    readonly property real mascotCenterY: barLayout.mascotCenterY
+
+    function openBar() {
+        root.pinned = true
+        root.hoverOpen = true
+    }
+
+    function closeBar() {
+        root.pinned = false
+        root.hoverOpen = false
+    }
+
+    function toggleBar() {
+        if (root.pinned)
+            root.closeBar()
+        else
+            root.openBar()
+    }
 
     function glanceAt(px, py) {
-        if (!mascot || hoverCtl.hovered)
+        if (!root.mascotItem || hoverCtl.hovered)
             return
         const mx = root.x + root.mascotCenterX
         const my = root.y + root.mascotCenterY
         const nx = Math.max(-1, Math.min(1, (px - mx) / Theme.size.notificationGazeSpanX))
         const ny = Math.max(-1, Math.min(1, (py - my) / Theme.size.notificationGazeSpanY))
-        mascot.notificationGaze(nx, ny)
+        root.mascotItem.notificationGaze(nx, ny)
     }
 
     function releaseAttention() {
-        if (!mascot)
+        if (!root.mascotItem)
             return
-        mascot.releaseNotificationGaze()
+        root.mascotItem.releaseNotificationGaze()
         if (!hoverCtl.hovered)
-            mascot.lookAt(0, 0)
+            root.mascotItem.lookAt(0, 0)
     }
 
     opacity: root.debugOpen ? 0 : 1
@@ -87,13 +108,10 @@ Item {
     width: root.chargeActive ? root.chargePanelWidth
          : root.statusActive ? (root.statusWidth + Theme.space.md * 2)
          : root.volumeActive ? (volumeCtl.implicitWidth + Theme.space.md * 2)
-         : root.mode === "bar" ? (barLayout.implicitWidth + Theme.size.mascotModuleGap + root.mascotBox)
+         : root.barExpanded ? barLayout.implicitWidth
          : root.floating ? Theme.size.dropHeight
          : Theme.size.dropWidth
-    height: root.chargeActive ? Theme.size.chargeHeight
-          : root.volumeActive ? Theme.size.dropHeight
-          : root.mode === "bar" ? Theme.size.dropHeight
-          : Theme.size.dropHeight
+    height: root.chargeActive ? Theme.size.chargeHeight : Theme.size.dropHeight
 
     clip: true
 
@@ -113,7 +131,7 @@ Item {
     readonly property real cx: width / 2
     readonly property real topHalf: width / 2
     property real topRadius: root.chargeActive ? Theme.radius.lg
-                         : root.mode === "bar" ? Theme.size.barTopRadius
+                         : root.barExpanded ? Theme.size.barTopRadius
                          : Theme.size.dropTopRadius
     Behavior on topRadius {
         NumberAnimation {
@@ -124,7 +142,7 @@ Item {
 
     readonly property real bodyHalf: Math.max(width / 2 - topRadius, 0)
     property real bottomR: root.chargeActive ? Theme.radius.lg
-                         : root.mode === "bar" ? Theme.size.barBottomRadius
+                         : root.barExpanded ? Theme.size.barBottomRadius
                          : Theme.size.dropBodyRadius
     Behavior on bottomR {
         NumberAnimation {
@@ -218,47 +236,21 @@ Item {
         width: root.width
         height: root.chargeActive ? root.height : Theme.size.dropHeight
 
-        // Left modules stay anchored next to the mascot (right side),
-        // so during the width animation the pill reveals them via clip
-        // instead of the modules sliding in.
         BarLayout {
             id: barLayout
+            x: 0
             y: 0
-            width: barLayout.implicitWidth
+            width: root.width
             height: head.height
-            x: mascot.x - Theme.size.mascotModuleGap - barLayout.implicitWidth
-            visible: root.mode === "bar" && !root.volumeActive
-            mascotPosition: root.mascotPosition
-            charging: root.chargeStatus
-        }
-
-        Mascot {
-            id: mascot
-            width: root.mascotBox
-            height: head.height
-            x: {
-                const rightAligned = head.width - width
-                const centered = (head.width - width) / 2
-                return centered + (rightAligned - centered) * root.anchorMix
-            }
+            host: root.host
             screen: root.screen
+            expanded: root.open
+            contentActive: !root.volumeActive
             volumeActive: root.volumeActive
-            transformOrigin: Item.Center
-            opacity: root.volumeActive || root.debugOpen ? 0 : 1
-            scale: root.volumeActive || root.debugOpen ? 0.5 : 1
-            visible: opacity > 0.01
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.motion.slow
-                    easing.type: Easing.InOutCubic
-                }
-            }
-            Behavior on scale {
-                NumberAnimation {
-                    duration: Theme.motion.slow
-                    easing.type: Easing.InOutCubic
-                }
-            }
+            mascotHidden: root.volumeActive || root.debugOpen
+            mascotBox: root.mascotBox
+            leftModules: BarConfig.leftModules
+            rightModules: BarConfig.rightModules
         }
 
         VolumeControl {
@@ -434,10 +426,10 @@ Item {
         onHoveredChanged: {
             if (hoverCtl.hovered) {
                 root.aimAtCursor(hoverCtl.point.position)
-                if (root.mode === "droplet")
-                    root.mode = "bar"
-            } else if (root.mode === "bar") {
-                root.mode = "droplet"
+                if (!root.pinned)
+                    root.hoverOpen = true
+            } else if (!root.pinned) {
+                root.hoverOpen = false
             }
         }
     }

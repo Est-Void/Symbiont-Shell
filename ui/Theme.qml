@@ -205,6 +205,8 @@ Singleton {
         readonly property real mascotModuleGap: 12
         readonly property real mascotCenterWidth: 128
         readonly property real mascotMinWidth: 80
+        readonly property real barModuleIcon: root.space.md
+        readonly property real barModuleTextMax: root.space.xxxl + root.space.xl
         readonly property real debugWidth: root.space.xxxl * 8 + root.space.xl
         readonly property real debugHeight: root.space.xxxl * 6 + root.space.xxl
         readonly property real debugHeaderHeight: root.space.huge

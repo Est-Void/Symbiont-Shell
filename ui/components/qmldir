@@ -2,6 +2,8 @@ TopBackdrop 1.0 TopBackdrop.qml
 Mascot 1.0 Mascot.qml
 Clock 1.0 Clock.qml
 BarLayout 1.0 BarLayout.qml
+BarZone 1.0 BarZone.qml
+BarGlyph 1.0 BarGlyph.qml
 DotText 1.0 DotText.qml
 VolumeControl 1.0 VolumeControl.qml
 BracketFrame 1.0 BracketFrame.qml

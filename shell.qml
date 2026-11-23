@@ -38,6 +38,18 @@ ShellRoot {
 
     readonly property var battery: UPower.displayDevice
 
+    readonly property bool barWifiConnected: shell._wifiConnected
+    readonly property string barWifiName: shell._wifiName
+    readonly property bool barBtConnected: shell._btConnected
+    readonly property string barBtName: shell._btName
+    readonly property real barVolume: shell.sinkAudio ? shell.sinkAudio.volume : 0
+    readonly property bool barVolumeMuted: shell.sinkAudio ? shell.sinkAudio.muted : false
+    readonly property string barLanguage:
+        shell._layouts[shell._layoutIdx] !== undefined
+            ? shell.langCode(shell._layouts[shell._layoutIdx]) : ""
+    property int barBatteryPercent: -1
+    readonly property bool barBatteryCharging: shell.chargeStatus
+
     property bool _batterySeen: false
     property bool _batteryWasConnected: false
     property bool _batteryWasFull: false
@@ -74,6 +86,8 @@ ShellRoot {
         interval: 700
         onTriggered: shell._sinkSwitching = false
     }
+
+    Component.onCompleted: shell._applyBattery()
 
     function showOsd(kind, value, muted, label) {
         shell.osdKind = kind
@@ -370,6 +384,7 @@ ShellRoot {
         const p = shell._batteryPercent()
         if (p < 0)
             return
+        shell.barBatteryPercent = Math.round(p)
         const b = shell.battery
         const connected = shell._batteryConnected()
         const full = connected && (p >= 100 || b.state === UPowerDeviceState.FullyCharged)
@@ -458,20 +473,22 @@ ShellRoot {
     TopBackdrop {
         id: backdrop
         screen: shell.screen
+        host: shell
         floating: shell.floatingMode
         volumeActive: shell.osdActive
         debugOpen: debugOverlay.alive
         launcherOpen: launcher.alive
         volume: shell.osdValue
         osdKind: shell.osdKind
-        chargeStatus: shell.chargeStatus
         osdMuted: shell.osdMuted
         osdLabel: shell.osdLabel
         x: {
             const w = parent.width
             const centered = w / 2 - backdrop.width / 2
-            const rightEdge = w / 2 + Theme.size.dropWidth / 2 - backdrop.width
-            return centered + (rightEdge - centered) * backdrop.anchorMix
+            const mascotAnchored = w / 2 - backdrop.mascotCenterX
+            const target = centered
+                + (mascotAnchored - centered) * backdrop.anchorMix
+            return Math.max(0, Math.min(w - backdrop.width, target))
         }
         y: floating ? Theme.space.snug / 2 : 0
 
@@ -551,5 +568,17 @@ ShellRoot {
         function clipboardOpen(): void { launcher.closeLauncher(); clipboardMenu.openClipboard() }
         function clipboardClose(): void { clipboardMenu.closeClipboard() }
         function clipboardToggle(): void { launcher.closeLauncher(); clipboardMenu.toggleClipboard() }
+
+        function barOpen(): void { backdrop.openBar() }
+        function barClose(): void { backdrop.closeBar() }
+        function barToggle(): void { backdrop.toggleBar() }
+        function barState(): string { return backdrop.open ? "open" : "closed" }
+        function barModules(): string { return BarConfig.availableModules() }
+        function barConfig(): string { return BarConfig.toJson() }
+        function barAdd(zone: string, module: string): void { BarConfig.add(zone, module) }
+        function barRemove(zone: string, module: string): void { BarConfig.remove(zone, module) }
+        function barMove(zone: string, module: string, index: int): void { BarConfig.move(zone, module, index) }
+        function barReset(): void { BarConfig.reset() }
+        function barReload(): void { BarConfig.reload() }
     }
 }
