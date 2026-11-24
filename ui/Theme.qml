@@ -207,8 +207,9 @@ Singleton {
         readonly property real mascotMinWidth: 80
         readonly property real barModuleIcon: root.space.md
         readonly property real barModuleTextMax: root.space.xxxl + root.space.xl
+        readonly property real barScreenMargin: root.space.snug
         readonly property real debugWidth: root.space.xxxl * 8 + root.space.xl
-        readonly property real debugHeight: root.space.xxxl * 6 + root.space.xxl
+        readonly property real debugHeight: root.space.xxxl * 8 + root.space.xxl
         readonly property real debugHeaderHeight: root.space.huge
         readonly property real debugPadding: root.space.xl
         readonly property real debugRadius: root.radius.xxl
@@ -217,6 +218,7 @@ Singleton {
         readonly property real debugRowHeight: root.space.xxxl
         readonly property real debugEnterScale: 0.97
         readonly property real debugEnterOffset: root.space.sm
+        readonly property real stepperButton: root.space.xl + root.space.sm
         readonly property real toggleWidth: root.space.xxl
         readonly property real toggleHeight: root.space.lg + root.space.xs
         readonly property real toggleKnob: root.space.lg - root.space.xxs

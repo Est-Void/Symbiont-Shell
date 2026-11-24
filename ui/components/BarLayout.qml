@@ -2,9 +2,12 @@ import QtQuick
 import qs.ui
 import qs.ui.components
 
-// The mascot is the anchor of the bar. Modules before it extend the droplet
-// to the left, modules after it extend it to the right. With no modules on a
-// side that side keeps the original droplet edge.
+// The mascot is the anchor of the bar. It always sits at the center of the
+// backdrop, so when the backdrop stretches open the mascot never moves: the
+// bar grows uniformly around it. Modules sit attached to the mascot (revealed
+// by the sweeping edges) and glide out to the bar edges once the backdrop is
+// wider than the content needs. With no modules on a side that side keeps the
+// original droplet edge.
 Item {
     id: root
 
@@ -18,20 +21,44 @@ Item {
     property bool volumeActive: false
     property bool mascotHidden: false
 
+    // Expanded backdrop width the host grows into; used to time the glide
+    // from "attached to the mascot" to "pinned to the bar edges".
+    property real fullWidth: 0
+
     property real mascotBox: Theme.size.dropWidth
-    readonly property real gap: Theme.size.mascotModuleGap
-    readonly property real edgePad: Theme.space.snug
+    readonly property real gap: BarConfig.moduleGap
+    readonly property real edgePad: BarConfig.edgePadding
 
     readonly property real leftWidth: leftZone.implicitWidth
     readonly property real rightWidth: rightZone.implicitWidth
-    readonly property real mascotTargetX:
-        root.leftWidth > 0 ? root.edgePad + root.leftWidth + root.gap : 0
-    property real mascotX: root.expanded ? root.mascotTargetX : 0
+
+    readonly property real mascotX: (root.width - root.mascotBox) / 2
 
     readonly property real contentWidth:
         (root.leftWidth > 0 ? root.edgePad + root.leftWidth + root.gap : 0)
         + root.mascotBox
         + (root.rightWidth > 0 ? root.gap + root.rightWidth + root.edgePad : 0)
+
+    readonly property real expandT: root.fullWidth - root.contentWidth > 0.5
+        ? Math.max(0, Math.min(1,
+            (root.width - root.contentWidth) / (root.fullWidth - root.contentWidth)))
+        : 0
+
+    readonly property real leftAttachedX:
+        root.mascotX - (root.leftWidth > 0 ? root.gap + root.leftWidth : 0)
+    readonly property real rightAttachedX:
+        root.mascotX + root.mascotBox + (root.rightWidth > 0 ? root.gap : 0)
+
+    // Glide distance each zone travels between the attached-to-mascot layout
+    // (at contentWidth) and the pinned-to-edges layout (at fullWidth). The
+    // offset is interpolated, not the position, so zones never wobble.
+    readonly property real leftGlide:
+        (root.fullWidth - root.mascotBox) / 2
+        - (root.leftWidth > 0 ? root.gap + root.leftWidth : 0) - root.edgePad
+    readonly property real rightGlide:
+        root.fullWidth - root.edgePad - root.rightWidth
+        - ((root.fullWidth - root.mascotBox) / 2 + root.mascotBox
+           + (root.rightWidth > 0 ? root.gap : 0))
 
     readonly property bool modulesVisible:
         root.contentActive
@@ -40,16 +67,9 @@ Item {
     implicitWidth: root.expanded ? root.contentWidth : root.mascotBox
     implicitHeight: Theme.size.dropHeight
 
-    Behavior on mascotX {
-        NumberAnimation {
-            duration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
-            easing.type: Easing.InOutCubic
-        }
-    }
-
     BarZone {
         id: leftZone
-        x: root.mascotX - (root.leftWidth > 0 ? root.gap + root.leftWidth : 0)
+        x: root.leftAttachedX - root.leftGlide * root.expandT
         y: 0
         width: implicitWidth
         height: root.height
@@ -60,7 +80,7 @@ Item {
 
     BarZone {
         id: rightZone
-        x: root.mascotX + root.mascotBox + (root.rightWidth > 0 ? root.gap : 0)
+        x: root.rightAttachedX + root.rightGlide * root.expandT
         y: 0
         width: implicitWidth
         height: root.height

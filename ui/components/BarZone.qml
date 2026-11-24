@@ -8,7 +8,7 @@ Item {
 
     property var modules: []
     property var host: null
-    property real spacing: Theme.space.snug
+    property real spacing: BarConfig.moduleGap
     property real moduleHeight: Theme.size.dropHeight
 
     implicitWidth: row.implicitWidth

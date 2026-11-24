@@ -17,7 +17,11 @@ Item {
     property bool pinned: false
     property bool hoverOpen: false
     readonly property bool open: root.pinned || root.hoverOpen
-    readonly property bool barExpanded: root.open && !root.volumeActive
+
+    // The bar keeps its geometry at all times: an OSD swaps in where the
+    // mascot sits instead of shrinking the bar into a capsule. A closed bar
+    // stretches open for the OSD and closes again afterwards.
+    readonly property bool barExpanded: root.open || root.volumeActive
 
     readonly property var mascotItem: barLayout.mascotItem
     property real volume: 0
@@ -29,35 +33,18 @@ Item {
     readonly property bool wifiActive: root.volumeActive && root.osdKind === "wifi"
     readonly property bool btActive: root.volumeActive && root.osdKind === "bt"
     readonly property bool statusActive: root.langActive || root.wifiActive || root.btActive
-    readonly property real statusWidth: root.langActive ? langCtl.implicitWidth
-        : root.wifiActive ? wifiCtl.implicitWidth
-        : btCtl.implicitWidth
     readonly property real chargePanelWidth:
         Theme.size.chargeValueWidth + Theme.space.sm + Theme.size.chargeTrackWidth
         + Theme.space.md * 2
-    readonly property bool centeredMode: root.volumeActive
     readonly property int expandDuration: Theme.motion.reducedMotion ? Theme.motion.instant : Theme.motion.slow
     readonly property int expandEasing: Easing.InOutCubic
 
-
-    // 1 = right-edge anchored (droplet / bar), 0 = centered (volume / floating)
-    property real anchorMix: root.floating || root.centeredMode ? 0 : 1
-    Behavior on anchorMix {
-        NumberAnimation {
-            duration: root.expandDuration
-            easing.type: root.expandEasing
-        }
-    }
-
-    function aimAtCursor(p) {
-        if (!root.mascotItem || root.width <= 0 || root.height <= 0)
-            return
-        root.mascotItem.lookAt((p.x - root.mascotCenterX) / (root.width / 2),
-                               (p.y - root.mascotCenterY) / (root.height / 2))
-    }
-
     readonly property real mascotBox:
         root.floating ? Theme.size.dropHeight : Theme.size.dropWidth
+    readonly property real barFullWidth:
+        root.screen && root.screen.width > 0
+            ? Math.max(0, root.screen.width - Theme.size.barScreenMargin * 2)
+            : barLayout.implicitWidth
     readonly property real mascotCenterX: barLayout.mascotCenterX
     readonly property real mascotCenterY: barLayout.mascotCenterY
 
@@ -76,6 +63,13 @@ Item {
             root.closeBar()
         else
             root.openBar()
+    }
+
+    function aimAtCursor(p) {
+        if (!root.mascotItem || root.width <= 0 || root.height <= 0)
+            return
+        root.mascotItem.lookAt((p.x - root.mascotCenterX) / (root.width / 2),
+                               (p.y - root.mascotCenterY) / (root.height / 2))
     }
 
     function glanceAt(px, py) {
@@ -105,13 +99,10 @@ Item {
         }
     }
 
-    width: root.chargeActive ? root.chargePanelWidth
-         : root.statusActive ? (root.statusWidth + Theme.space.md * 2)
-         : root.volumeActive ? (volumeCtl.implicitWidth + Theme.space.md * 2)
-         : root.barExpanded ? barLayout.implicitWidth
+    width: root.barExpanded ? root.barFullWidth
          : root.floating ? Theme.size.dropHeight
          : Theme.size.dropWidth
-    height: root.chargeActive ? Theme.size.chargeHeight : Theme.size.dropHeight
+    height: Theme.size.dropHeight
 
     clip: true
 
@@ -121,18 +112,11 @@ Item {
             easing.type: root.expandEasing
         }
     }
-    Behavior on height {
-        NumberAnimation {
-            duration: root.expandDuration
-            easing.type: root.expandEasing
-        }
-    }
 
     readonly property real cx: width / 2
     readonly property real topHalf: width / 2
-    property real topRadius: root.chargeActive ? Theme.radius.lg
-                         : root.barExpanded ? Theme.size.barTopRadius
-                         : Theme.size.dropTopRadius
+    property real topRadius: root.barExpanded ? Theme.size.barTopRadius
+                          : Theme.size.dropTopRadius
     Behavior on topRadius {
         NumberAnimation {
             duration: root.expandDuration
@@ -141,8 +125,7 @@ Item {
     }
 
     readonly property real bodyHalf: Math.max(width / 2 - topRadius, 0)
-    property real bottomR: root.chargeActive ? Theme.radius.lg
-                         : root.barExpanded ? Theme.size.barBottomRadius
+    property real bottomR: root.barExpanded ? Theme.size.barBottomRadius
                          : Theme.size.dropBodyRadius
     Behavior on bottomR {
         NumberAnimation {
@@ -234,7 +217,7 @@ Item {
         x: 0
         y: 0
         width: root.width
-        height: root.chargeActive ? root.height : Theme.size.dropHeight
+        height: Theme.size.dropHeight
 
         BarLayout {
             id: barLayout
@@ -245,10 +228,10 @@ Item {
             host: root.host
             screen: root.screen
             expanded: root.open
-            contentActive: !root.volumeActive
             volumeActive: root.volumeActive
             mascotHidden: root.volumeActive || root.debugOpen
             mascotBox: root.mascotBox
+            fullWidth: root.barFullWidth
             leftModules: BarConfig.leftModules
             rightModules: BarConfig.rightModules
         }
@@ -399,10 +382,9 @@ Item {
 
         ChargeControl {
             id: chargeCtl
-            x: 0
-            y: 0
             width: root.chargePanelWidth
-            height: chargeCtl.implicitHeight
+            height: Theme.size.dropHeight
+            anchors.centerIn: parent
             value: root.volume
             charging: !root.osdMuted
             label: root.osdLabel

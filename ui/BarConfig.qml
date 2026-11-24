@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.ui
 
 // Bar module layout. Three ordered buckets feed one flat row:
 //
@@ -10,6 +11,8 @@ import Quickshell.Io
 //
 // "mascot" is mandatory and may sit anywhere in that row. Modules before it
 // extend the droplet to the left, modules after it extend it to the right.
+// Spacing values snap to the 4pt scale steps in paddingSteps / gapSteps;
+// anything else read from the file or IPC is snapped to the nearest step.
 // The file is rewritten atomically whenever the layout changes.
 Singleton {
     id: root
@@ -41,6 +44,14 @@ Singleton {
     property var left: ["language", "network", "clock"]
     property var center: ["mascot"]
     property var right: ["bluetooth", "volume", "battery"]
+
+    readonly property var paddingSteps: [0, 4, 8, 12, 16, 24, 32]
+    readonly property var gapSteps: [4, 8, 12, 16, 24, 32]
+    readonly property int defaultEdgePadding: Theme.space.snug
+    readonly property int defaultModuleGap: Theme.size.mascotModuleGap
+
+    property int edgePadding: Theme.space.snug
+    property int moduleGap: Theme.size.mascotModuleGap
 
     property bool ready: false
 
@@ -121,8 +132,26 @@ Singleton {
         root._persist()
     }
 
+    function setEdgePadding(value) {
+        const v = root._snapStep(value, root.paddingSteps, root.defaultEdgePadding)
+        if (v === root.edgePadding)
+            return
+        root.edgePadding = v
+        root._persist()
+    }
+
+    function setModuleGap(value) {
+        const v = root._snapStep(value, root.gapSteps, root.defaultModuleGap)
+        if (v === root.moduleGap)
+            return
+        root.moduleGap = v
+        root._persist()
+    }
+
     function reset() {
         root._applyZones(root.defaultZones)
+        root.edgePadding = root.defaultEdgePadding
+        root.moduleGap = root.defaultModuleGap
         root._persist()
     }
 
@@ -133,6 +162,22 @@ Singleton {
     function _zoneName(zone) {
         const z = String(zone || "").trim().toLowerCase()
         return z === "left" || z === "center" || z === "right" ? z : ""
+    }
+
+    function _snapStep(value, steps, fallback) {
+        const n = Math.round(Number(value))
+        if (isNaN(n))
+            return fallback
+        let best = steps[0]
+        let bestDist = Math.abs(steps[0] - n)
+        for (let i = 1; i < steps.length; ++i) {
+            const dist = Math.abs(steps[i] - n)
+            if (dist < bestDist) {
+                bestDist = dist
+                best = steps[i]
+            }
+        }
+        return best
     }
 
     function _copyZone(zone) {
@@ -205,6 +250,15 @@ Singleton {
                 parsed = null
             }
         }
+        if (parsed && !Array.isArray(parsed)) {
+            root.edgePadding =
+                root._snapStep(parsed.edgePadding, root.paddingSteps, root.defaultEdgePadding)
+            root.moduleGap =
+                root._snapStep(parsed.moduleGap, root.gapSteps, root.defaultModuleGap)
+        } else {
+            root.edgePadding = root.defaultEdgePadding
+            root.moduleGap = root.defaultModuleGap
+        }
         root._applyZones(parsed || root.defaultZones)
     }
 
@@ -213,7 +267,9 @@ Singleton {
             version: 1,
             left: root.left,
             center: root.center,
-            right: root.right
+            right: root.right,
+            edgePadding: root.edgePadding,
+            moduleGap: root.moduleGap
         }, null, 2) + "\n"
     }
 

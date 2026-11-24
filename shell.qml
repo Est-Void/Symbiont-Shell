@@ -15,6 +15,7 @@ ShellRoot {
         Pipewire.defaultAudioSink ? Pipewire.defaultAudioSink.audio : null
 
     property bool floatingMode: false
+    property bool reserveSpace: false
     readonly property real mascotBottomY:
         floatingMode ? backdrop.y + backdrop.height : Theme.size.dropHeight
 
@@ -430,7 +431,7 @@ ShellRoot {
         top: true
         left: true
         right: true
-        bottom: true
+        bottom: !shell.reserveSpace
     }
 
     implicitHeight: Math.max(Math.max(Theme.size.dropHeight, Theme.size.chargeHeight) + Theme.space.xs,
@@ -440,7 +441,13 @@ ShellRoot {
 
     WlrLayershell.namespace: "symbiont"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.exclusiveZone: -1
+    // Positive exclusive zones only reserve space along a single anchored
+    // edge, so reserving drops the bottom anchor (all-edges anchoring would
+    // make the compositor treat the zone as zero).
+    WlrLayershell.exclusiveZone: shell.reserveSpace
+        ? Math.ceil(Theme.size.dropHeight
+                    + (shell.floatingMode ? Theme.space.snug / 2 : Theme.space.xs))
+        : -1
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     color: "transparent"
@@ -482,14 +489,8 @@ ShellRoot {
         osdKind: shell.osdKind
         osdMuted: shell.osdMuted
         osdLabel: shell.osdLabel
-        x: {
-            const w = parent.width
-            const centered = w / 2 - backdrop.width / 2
-            const mascotAnchored = w / 2 - backdrop.mascotCenterX
-            const target = centered
-                + (mascotAnchored - centered) * backdrop.anchorMix
-            return Math.max(0, Math.min(w - backdrop.width, target))
-        }
+        x: Math.max(0, Math.min(parent.width - backdrop.width,
+                                (parent.width - backdrop.width) / 2))
         y: floating ? Theme.space.snug / 2 : 0
 
         Behavior on y {
@@ -530,7 +531,9 @@ ShellRoot {
         id: debugOverlay
         screen: shell.screen
         floatingMode: shell.floatingMode
+        reserveSpace: shell.reserveSpace
         onFloatingModeToggled: function (value) { shell.floatingMode = value }
+        onReserveSpaceToggled: function (value) { shell.reserveSpace = value }
         mascotStartX: backdrop.x + backdrop.mascotCenterX
         mascotStartY: backdrop.y + backdrop.mascotCenterY
     }
@@ -578,6 +581,8 @@ ShellRoot {
         function barAdd(zone: string, module: string): void { BarConfig.add(zone, module) }
         function barRemove(zone: string, module: string): void { BarConfig.remove(zone, module) }
         function barMove(zone: string, module: string, index: int): void { BarConfig.move(zone, module, index) }
+        function barPadding(value: int): void { BarConfig.setEdgePadding(value) }
+        function barGap(value: int): void { BarConfig.setModuleGap(value) }
         function barReset(): void { BarConfig.reset() }
         function barReload(): void { BarConfig.reload() }
     }

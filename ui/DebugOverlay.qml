@@ -15,9 +15,11 @@ PanelWindow {
     property real mascotStartY: 0
     property bool placeholderOn: false
     property bool floatingMode: false
+    property bool reserveSpace: false
 
     signal closeRequested()
     signal floatingModeToggled(bool value)
+    signal reserveSpaceToggled(bool value)
 
     readonly property real menuWidth: Theme.size.debugWidth
     readonly property real menuHeight: Theme.size.debugHeight
@@ -291,6 +293,157 @@ PanelWindow {
                     checked: root.floatingMode
                     label: "Floating appearance"
                     onToggled: function (value) { root.floatingModeToggled(value) }
+                }
+            }
+
+            Rectangle {
+                id: paddingRow
+                width: body.width
+                height: Theme.size.debugRowHeight
+                radius: Theme.radius.md
+                color: Theme.color.surface2
+                border.width: Theme.size.hairline
+                border.color: Theme.color.borderDefault
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.space.xxs
+
+                    Text {
+                        text: "BAR PADDING"
+                        color: Theme.color.textPrimary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.label.size
+                        font.weight: Theme.type.label.weight
+                        font.letterSpacing: Theme.type.label.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+
+                    Text {
+                        text: "EDGE INSETS · "
+                              + BarConfig.paddingSteps[0] + "–"
+                              + BarConfig.paddingSteps[BarConfig.paddingSteps.length - 1]
+                              + " PX"
+                        color: Theme.color.textTertiary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.labelSm.size
+                        font.letterSpacing: Theme.type.labelSm.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+                }
+
+                NStepper {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    values: BarConfig.paddingSteps
+                    value: BarConfig.edgePadding
+                    label: "Bar edge padding"
+                    onStepped: function (value) { BarConfig.setEdgePadding(value) }
+                }
+            }
+
+            Rectangle {
+                id: gapRow
+                width: body.width
+                height: Theme.size.debugRowHeight
+                radius: Theme.radius.md
+                color: Theme.color.surface2
+                border.width: Theme.size.hairline
+                border.color: Theme.color.borderDefault
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.space.xxs
+
+                    Text {
+                        text: "MODULE GAP"
+                        color: Theme.color.textPrimary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.label.size
+                        font.weight: Theme.type.label.weight
+                        font.letterSpacing: Theme.type.label.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+
+                    Text {
+                        text: "BETWEEN MODULES · "
+                              + BarConfig.gapSteps[0] + "–"
+                              + BarConfig.gapSteps[BarConfig.gapSteps.length - 1]
+                              + " PX"
+                        color: Theme.color.textTertiary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.labelSm.size
+                        font.letterSpacing: Theme.type.labelSm.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+                }
+
+                NStepper {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    values: BarConfig.gapSteps
+                    value: BarConfig.moduleGap
+                    label: "Gap between bar modules"
+                    onStepped: function (value) { BarConfig.setModuleGap(value) }
+                }
+            }
+
+            Rectangle {
+                id: reserveRow
+                width: body.width
+                height: Theme.size.debugRowHeight
+                radius: Theme.radius.md
+                color: Theme.color.surface2
+                border.width: Theme.size.hairline
+                border.color: Theme.color.borderDefault
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.space.xxs
+
+                    Text {
+                        text: "WINDOW SPACE"
+                        color: Theme.color.textPrimary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.label.size
+                        font.weight: Theme.type.label.weight
+                        font.letterSpacing: Theme.type.label.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+
+                    Text {
+                        text: root.reserveSpace
+                              ? "RESERVED · WINDOWS BELOW BAR"
+                              : "FREE · BAR OVERLAPS WINDOWS"
+                        color: Theme.color.textTertiary
+                        font.family: Theme.font.mono[0]
+                        font.pixelSize: Theme.type.labelSm.size
+                        font.letterSpacing: Theme.type.labelSm.tracking
+                        font.capitalization: Font.AllUppercase
+                        renderType: Text.NativeRendering
+                    }
+                }
+
+                NToggle {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.space.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: root.reserveSpace
+                    label: "Reserve screen space for the bar"
+                    onToggled: function (value) { root.reserveSpaceToggled(value) }
                 }
             }
         }

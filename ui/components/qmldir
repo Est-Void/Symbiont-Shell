@@ -18,6 +18,7 @@ DotCluster 1.0 DotCluster.qml
 NotificationPill 1.0 NotificationPill.qml
 NotificationNeck 1.0 NotificationNeck.qml
 NToggle 1.0 NToggle.qml
+NStepper 1.0 NStepper.qml
 NTextField 1.0 NTextField.qml
 LauncherAppRow 1.0 LauncherAppRow.qml
 LauncherList 1.0 LauncherList.qml
